@@ -1,11 +1,11 @@
+use serde::{Deserialize, Serialize};
 
-fn main() {
-    did_resolve();
-}
+#[derive(Serialize, Deserialize)]
+struct DIDResolveResponse {}
 
-async fn did_resolve(
-    &mut self,
-    did_id: &str,
-) -> AsyncResult<VadePluginResultValue<Option<String>>> {
-
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let resp = reqwest::blocking::get("https://dev.uniresolver.io/1.0/identifiers/did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736")?
+        .text()?;
+    println!("{:#?}", resp);
+    Ok(())
 }
