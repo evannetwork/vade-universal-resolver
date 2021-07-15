@@ -5,12 +5,12 @@
 [![Apache-2 licensed](https://img.shields.io/crates/l/vade-universal-resolver.svg)](./LICENSE.txt)
 
 ## About
-This crate allows you to use to resolve DIDs.
-For this purpose a [`VadePlugin`] implementations is exported: [`VadeUniversalResolver`].
+This crate allows you to resolve DIDs.
+For this purpose a [`VadePlugin`] implementation is exported: [`VadeUniversalResolver`].
 
 ## VadeUniversalResolver
 
-Supports creating, updating and getting DIDs and DID documents on substrate, therefore supports:
+Supports resolving all did methods provided by the universal resolver api:
 
 - [`did_resolve`]
 

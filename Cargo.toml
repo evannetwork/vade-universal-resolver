@@ -1,8 +1,12 @@
 [package]
 name = "vade-universal-resolver"
 version = "0.1.0"
-authors = ["Blockchains Inc"]
+authors = ["evan GmbH"]
 edition = "2018"
+license-file = "LICENSE.txt"
+description = "universal resolver plugin for vade"
+readme = "README.md"
+keywords = ["did", "ssi"]
 
 [lib]
 name = "vade_universal_resolver"

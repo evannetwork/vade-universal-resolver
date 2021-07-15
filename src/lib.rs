@@ -14,14 +14,13 @@
   limitations under the License.
 */
 
-//! This crate allows you to use to resolve DIDs.
-//! For this purpose a [`VadePlugin`] implementations is exported: [`VadeUniversalResolver`].
+//! This crate allows you to resolve DIDs.
+//! For this purpose a [`VadePlugin`] implementation is exported: [`VadeUniversalResolver`].
 //!
 //! ## VadeUniversalResolver
 //!
-//! Supports creating, updating and getting DIDs and DID documents on substrate, therefore supports:
+//! Supports resolving all did methods provided by the universal resolver api:
 //!
-//
 //! - [`did_resolve`]
 //!
 //!
@@ -53,7 +52,7 @@
 //! ```sh
 //! wasm-pack build --release --target web
 //! ```
-
+//!
 //! [`did_create`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_create
 //! [`did_resolve`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_resolve
 //! [`did_update`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_update

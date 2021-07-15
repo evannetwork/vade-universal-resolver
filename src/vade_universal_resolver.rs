@@ -17,10 +17,20 @@
 extern crate vade;
 
 use async_trait::async_trait;
-use std::env;
+use std::{env};
 use vade::{AsyncResult, VadePlugin, VadePluginResultValue};
+use serde::{Deserialize, Serialize};
 
 const DID_PREFIX: &str = "did:";
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DidResolverResult {
+    pub did_resolution_metadata: serde_json::Value,
+    pub did_document_metadata: serde_json::Value,
+    pub did_document: serde_json::Value,
+}
+
 pub struct ResolverConfig {
     pub resolver_url: String,
 }
@@ -65,7 +75,10 @@ impl VadePlugin for VadeUniversalResolver {
         resolver_url.push_str(did_id);
 
         let did_result = reqwest::blocking::get(&resolver_url)?.text()?;
-        Ok(VadePluginResultValue::Success(Some(did_result)))
+
+        let  resolver_result: DidResolverResult = serde_json::from_str(&did_result)?;
+        let did_document = resolver_result.did_document.to_string();
+        Ok(VadePluginResultValue::Success(Some(did_document)))
     }
 }
 
