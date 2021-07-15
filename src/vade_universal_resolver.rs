@@ -35,10 +35,9 @@ impl VadeUniversalResolver {
     pub fn new() -> VadeUniversalResolver {
         // Setting default value for resolver url as universal resolver
         let mut url = "https://dev.uniresolver.io/1.0/identifiers/".to_string();
-        println!("resolver url {:?}", env::var("ResolverUrl").ok().is_some());
-        if !env::var("resolver-url").is_err() && env::var("resolver-url").ok().is_some() {
+        if !env::var("RESOLVER_URL").is_err() && env::var("RESOLVER_URL").is_ok() {
             // If environment variable is found and it contains some value, it will replace default value
-            url = env::var("resolver-url").ok().unwrap();
+            url = env::var("RESOLVER_URL").ok().unwrap();
         }
         let config = ResolverConfig { resolver_url: url };
         match env_logger::try_init() {
@@ -59,7 +58,6 @@ impl VadePlugin for VadeUniversalResolver {
         &mut self,
         did_id: &str,
     ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
-        println!("did_resolve {:?}",self.config.resolver_url.clone());
         if !did_id.starts_with(DID_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
@@ -90,9 +88,13 @@ mod tests {
     async fn can_resolve_did() -> AsyncResult<()> {
         enable_logging();
         let mut resolver = VadeUniversalResolver::new();
-        let _result = resolver.did_resolve( "did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736").await;
+        let result = resolver.did_resolve( "did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736").await;
+
+        if let VadePluginResultValue::Success(Some(value)) = result.as_ref().unwrap() {
+            println!("did resolve result: {}", &value);
+        }
+        assert_eq!(result.is_ok(), true);
+
         Ok(())
     }
-
-   
 }

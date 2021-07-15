@@ -20,4 +20,4 @@ serde_json = "1.0"
 vade = { path = "../vade", version = "0.0.8" }
 
 [dev-dependencies]
-tokio = { version = "0.2.21", features = ["full"] }
+tokio = { version = "0.2.21", features = ["macros", "rt-threaded"] }
