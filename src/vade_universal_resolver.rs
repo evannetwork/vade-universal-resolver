@@ -18,7 +18,7 @@ extern crate vade;
 
 use async_trait::async_trait;
 use std::{env};
-use vade::{AsyncResult, VadePlugin, VadePluginResultValue};
+use vade::{VadePlugin, VadePluginResultValue};
 use serde::{Deserialize, Serialize};
 
 const DID_PREFIX: &str = "did:";
@@ -57,7 +57,7 @@ impl VadeUniversalResolver {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl VadePlugin for VadeUniversalResolver {
     /// Fetch data about a DID, which returns this DID's DID document.
     ///
@@ -67,7 +67,7 @@ impl VadePlugin for VadeUniversalResolver {
     async fn did_resolve(
         &mut self,
         did_id: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn std::error::Error>> {
         if !did_id.starts_with(DID_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
@@ -98,7 +98,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn can_resolve_did() -> AsyncResult<()> {
+    async fn can_resolve_did() ->Result<(),Box<dyn std::error::Error>> {
         enable_logging();
         let mut resolver = VadeUniversalResolver::new();
         let result = resolver.did_resolve( "did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736").await;
