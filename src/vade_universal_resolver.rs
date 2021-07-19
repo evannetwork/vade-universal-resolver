@@ -98,7 +98,7 @@ mod tests {
     #[tokio::test]
     async fn can_resolve_did() ->Result<(),Box<dyn std::error::Error>> {
         enable_logging();
-        let mut resolver = VadeUniversalResolver::new(None);
+        let mut resolver = VadeUniversalResolver::new(std::env::var("RESOLVER_URL").ok());
         let result = resolver.did_resolve( "did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736").await;
 
         let respone = match result.as_ref() {
