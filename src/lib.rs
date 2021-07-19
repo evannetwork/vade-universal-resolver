@@ -23,8 +23,6 @@
 //!
 //! - [`did_resolve`]
 //!
-//!
-//!
 //! ## Compiling vade_universal_resolver
 //!
 //! ### "Regular" build
@@ -34,30 +32,9 @@
 //! ```sh
 //! cargo build --release
 //! ```
-//!
-//! ### WASM
-//!
-//! To compile `vade_universal_resolver` for wasm, use wasm pack.
-//!
-//! Also you have to specify whether to build a browser or a nodejs environment.
-//!
-//! nodejs:
-//!
-//! ```sh
-//! wasm-pack build --release --target nodejs
-//! ```
-//!
-//! browser:
-//!
-//! ```sh
-//! wasm-pack build --release --target web
-//! ```
-//!
-//! [`did_create`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_create
+
 //! [`did_resolve`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_resolve
-//! [`did_update`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_update
-//! [`VadeEvanSubstrate`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html
-//! [`Vade`]: https://docs.rs/vade/*/vade/struct.Vade.html
+//! [`VadeUniversalResolver `]: https://git.slock.it/equs/interop/vade/vade-universal-resolver
 //! [`VadePlugin`]: https://docs.rs/vade/*/vade/trait.VadePlugin.html
 
 #[macro_use]
