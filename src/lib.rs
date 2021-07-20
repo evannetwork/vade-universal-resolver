@@ -25,10 +25,6 @@
 //!
 //! ## Compiling vade_universal_resolver
 //!
-//! ### "Regular" build
-//!
-//! No surprise here:
-//!
 //! ```sh
 //! cargo build --release
 //! ```
