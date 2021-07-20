@@ -17,8 +17,8 @@
 extern crate vade;
 
 use async_trait::async_trait;
-use vade::{VadePlugin, VadePluginResultValue};
 use serde::{Deserialize, Serialize};
+use vade::{VadePlugin, VadePluginResultValue};
 
 const DID_PREFIX: &str = "did:";
 const DEFAULT_URL: &str = "https://dev.uniresolver.io/1.0/identifiers/";
@@ -72,7 +72,7 @@ impl VadePlugin for VadeUniversalResolver {
         let mut resolver_url = self.config.resolver_url.clone();
         resolver_url.push_str(did_id);
 
-        let did_result = reqwest::blocking::get(&resolver_url)?.text()?;
+        let did_result = reqwest::get(&resolver_url).await?.text().await?;
 
         let resolver_result: DidResolverResult = serde_json::from_str(&did_result)?;
         let did_document = resolver_result.did_document.to_string();
@@ -80,12 +80,10 @@ impl VadePlugin for VadeUniversalResolver {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{sync::Once};
+    use std::sync::Once;
 
     static INIT: Once = Once::new();
 
@@ -96,10 +94,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn can_resolve_did() ->Result<(),Box<dyn std::error::Error>> {
+    async fn can_resolve_did() -> Result<(), Box<dyn std::error::Error>> {
         enable_logging();
         let mut resolver = VadeUniversalResolver::new(std::env::var("RESOLVER_URL").ok());
-        let result = resolver.did_resolve( "did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736").await;
+        let result = resolver
+            .did_resolve("did:ethr:mainnet:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736")
+            .await;
 
         let respone = match result.as_ref() {
             Ok(VadePluginResultValue::Success(Some(value))) => value.to_string(),
