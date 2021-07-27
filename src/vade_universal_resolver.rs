@@ -16,7 +16,10 @@
 
 extern crate vade;
 
+use std::time::Duration;
+
 use async_trait::async_trait;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use vade::{VadePlugin, VadePluginResultValue};
 
@@ -72,11 +75,29 @@ impl VadePlugin for VadeUniversalResolver {
         let mut resolver_url = self.config.resolver_url.clone();
         resolver_url.push_str(did_id);
 
-        let did_result = reqwest::get(&resolver_url).await?.text().await?;
+        let did_result = Client::builder()
+            .timeout(Duration::from_secs(2))
+            .build()?
+            .get(&resolver_url)
+            .send()
+            .await;
 
-        let resolver_result: DidResolverResult = serde_json::from_str(&did_result)?;
-        let did_document = resolver_result.did_document.to_string();
-        Ok(VadePluginResultValue::Success(Some(did_document)))
+        match did_result {
+            Ok(result) => {
+                let request_result = match result.text().await {
+                    Ok(text) => text,
+                    Err(e) => return Ok(VadePluginResultValue::Ignored),
+                };
+                let resolver_result: DidResolverResult = match serde_json::from_str(&request_result)
+                {
+                    Ok(text) => text,
+                    Err(e) => return Ok(VadePluginResultValue::Ignored),
+                };
+                let did_document = resolver_result.did_document.to_string();
+                Ok(VadePluginResultValue::Success(Some(did_document)))
+            }
+            Err(e) => Ok(VadePluginResultValue::Ignored),
+        }
     }
 }
 
