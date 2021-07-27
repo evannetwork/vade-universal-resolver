@@ -17,7 +17,6 @@
 extern crate vade;
 
 use std::time::Duration;
-
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
