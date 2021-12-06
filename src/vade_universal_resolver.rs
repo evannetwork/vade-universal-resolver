@@ -35,6 +35,8 @@ pub struct DidResolverResult {
 
 pub struct UniversalResolverConfig {
     pub resolver_url: String,
+    #[cfg(feature = "sdk")]
+    pub request_id: u32,
 }
 
 /// Resolver for DIDs via Universal Resolver
@@ -44,15 +46,24 @@ pub struct VadeUniversalResolver {
 
 impl VadeUniversalResolver {
     /// Creates new instance of `VadeUniversalResolver`.
-    pub fn new(resolver_url: Option<String>) -> VadeUniversalResolver {
+    pub fn new(resolver_url: Option<String>, 
+        #[cfg(feature = "sdk")]
+        request_id: u32
+    ) -> VadeUniversalResolver {
         // Setting default value for resolver url as universal resolver
         // If environment variable is found and it contains some value, it will replace default value
         let url = resolver_url.unwrap_or_else(|| DEFAULT_URL.to_string());
 
-        let config = UniversalResolverConfig { resolver_url: url };
+        let config = UniversalResolverConfig { 
+            resolver_url: url,
+            #[cfg(feature = "sdk")]
+            request_id
+        };
+
         match env_logger::try_init() {
             Ok(_) | Err(_) => (),
         };
+
         VadeUniversalResolver { config }
     }
 }
@@ -71,15 +82,27 @@ impl VadePlugin for VadeUniversalResolver {
         if !did_id.starts_with(DID_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
+        let mut result;
         let mut resolver_url = self.config.resolver_url.clone();
-        resolver_url.push_str(did_id);
+        cfg_if::cfg_if! {
+              if #[cfg(feature = "sdk")]{
+                // if compiled for sdk integration, get_http_response function will be called
+                // TODO: once c library function is received from SDK team add logic here to call the function,
+                // TODO: as of now the function call is assumed to be returning request pending, need more information regarding function parameters
+                // structures
+                let response = "{"status":"pending"}";
+                return Ok(VadePluginResultValue::Success(Some(response)));
+              } else {
+                resolver_url.push_str(did_id);
+                let did_result = Client::builder();
+                #[cfg(not(target_arch = "wasm32"))]
+                let did_result = did_result.timeout(Duration::from_secs(2));
+                result = did_result.build()?.get(&resolver_url).send().await;
+              }
 
-        let did_result = Client::builder();
-        #[cfg(not(target_arch = "wasm32"))]
-        let did_result = did_result.timeout(Duration::from_secs(2));
-        let did_result = did_result.build()?.get(&resolver_url).send().await;
+        }
 
-        match did_result {
+        match result {
             Ok(result) => {
                 let request_result = match result.text().await {
                     Ok(text) => text.to_string(),
