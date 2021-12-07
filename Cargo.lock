@@ -1084,7 +1084,7 @@ dependencies = [
 
 [[package]]
 name = "vade-universal-resolver"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "async-trait",
  "cfg-if 0.1.10",
