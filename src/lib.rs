@@ -35,6 +35,9 @@
 
 #[macro_use]
 
+#[cfg(feature = "sdk")]
+mod in3_request_list;
+
 // did
 mod vade_universal_resolver;
 pub use self::vade_universal_resolver::*;

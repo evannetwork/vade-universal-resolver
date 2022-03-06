@@ -17,10 +17,19 @@
 extern crate vade;
 
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use vade::{VadePlugin, VadePluginResultValue};
+#[cfg(not(feature = "sdk"))]
+use reqwest::Client;
+#[cfg(not(feature = "sdk"))]
+use std::time::Duration;
+#[cfg(feature = "sdk")]
+use std::os::raw::c_void;
+#[cfg(feature = "sdk")]
+use crate::in3_request_list::resolve_http_request;
+#[cfg(feature = "sdk")]
+use std::ffi::{CStr, CString};
+
 
 const DID_PREFIX: &str = "did:";
 const DEFAULT_URL: &str = "https://dev.uniresolver.io/1.0/identifiers/";
@@ -36,7 +45,7 @@ pub struct DidResolverResult {
 pub struct UniversalResolverConfig {
     pub resolver_url: String,
     #[cfg(feature = "sdk")]
-    pub request_id: u32,
+    pub request_id: *const c_void,
 }
 
 /// Resolver for DIDs via Universal Resolver
@@ -48,7 +57,8 @@ impl VadeUniversalResolver {
     /// Creates new instance of `VadeUniversalResolver`.
     pub fn new(
         resolver_url: Option<String>,
-        #[cfg(feature = "sdk")] request_id: u32,
+        #[cfg(feature = "sdk")] 
+        request_id: *const c_void,
     ) -> VadeUniversalResolver {
         // Setting default value for resolver url as universal resolver
         // If environment variable is found and it contains some value, it will replace default value
@@ -84,16 +94,50 @@ impl VadePlugin for VadeUniversalResolver {
         }
 
         let mut resolver_url = self.config.resolver_url.clone();
+        resolver_url.push_str(did_id);
+        let request_pointer = self.config.request_id.clone();
         cfg_if::cfg_if! {
               if #[cfg(feature = "sdk")]{
                 // if compiled for sdk integration, get_http_response function will be called
                 // TODO: once c library function is received from SDK team add logic here to call the function,
                 // TODO: as of now the function call is assumed to be returning request pending, need more information regarding function parameters
                 // structures
-                let response = "{\"status\" : \"pending\"}";
+                let url = CString::new(resolver_url).expect("CString::new failed for resolver_url");
+                let url = url.as_ptr();
+
+                let method = CString::new("get").expect("CString::new failed for method");
+                let method = method.as_ptr();
+
+                let path = CString::new("").expect("CString::new failed for path");
+                let path = path.as_ptr();
+
+                let payload = CString::new("").expect("CString::new failed for payload");
+                let payload = payload.as_ptr();
+
+                let res = CString::new("").expect("CString::new failed for res");
+                let res = res.as_ptr();
+
+                let error_code = unsafe { 
+                    resolve_http_request(
+                    request_pointer, 
+                    url, 
+                    method, 
+                    path, 
+                    payload, 
+                    res)
+                };
+ 
+                let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
+
+                let response = format!(r#"{{
+                    "erorr_code": {}, 
+                    "result": "{}"
+                }}"#,
+                error_code, res);
+
                 return Ok(VadePluginResultValue::Success(Some(response.to_string())));
               } else {
-                resolver_url.push_str(did_id);
+                
                 let did_result = Client::builder();
                 #[cfg(not(target_arch = "wasm32"))]
                 let did_result = did_result.timeout(Duration::from_secs(2));
