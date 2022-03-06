@@ -3,6 +3,7 @@
 ## Next Version
 
 ### Features
+add support for sdk feature, enable request list
 
 ### Fixes
 
