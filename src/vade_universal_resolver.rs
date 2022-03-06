@@ -95,6 +95,7 @@ impl VadePlugin for VadeUniversalResolver {
 
         let mut resolver_url = self.config.resolver_url.clone();
         resolver_url.push_str(did_id);
+        #[cfg(feature = "sdk")]
         let request_pointer = self.config.request_id.clone();
         cfg_if::cfg_if! {
               if #[cfg(feature = "sdk")]{
