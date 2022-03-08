@@ -1,6 +1,5 @@
 use std::os::raw::{c_char, c_void};
 
-#[link(name = "in3")]
 extern "C" {
     pub fn resolve_http_request(
     vade_req_ctx: *const c_void, 
