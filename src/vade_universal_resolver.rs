@@ -41,7 +41,6 @@ pub struct DidResolverResult {
     pub did_document: serde_json::Value,
 }
 
-#[derive(Clone)]
 pub struct UniversalResolverConfig {
     pub resolver_url: String,
     #[cfg(feature = "sdk")]
@@ -51,7 +50,6 @@ pub struct UniversalResolverConfig {
 }
 
 /// Resolver for DIDs via Universal Resolver
-#[derive(Clone)]
 pub struct VadeUniversalResolver {
     config: UniversalResolverConfig,
 }
@@ -129,7 +127,7 @@ impl VadePlugin for VadeUniversalResolver {
                 let res = res.as_ptr();
 
                 let error_code = (resolve_http_request)(
-                    (request_pointer as *mut *const c_void) as *const c_void,
+                    request_pointer,
                     url,
                     method,
                     path,
