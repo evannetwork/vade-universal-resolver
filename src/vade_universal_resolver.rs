@@ -16,20 +16,19 @@
 
 extern crate vade;
 
+#[cfg(feature = "sdk")]
+use crate::in3_request_list::ResolveHttpRequest;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use vade::{VadePlugin, VadePluginResultValue};
 #[cfg(not(feature = "sdk"))]
 use reqwest::Client;
-#[cfg(not(feature = "sdk"))]
-use std::time::Duration;
-#[cfg(feature = "sdk")]
-use std::os::raw::c_void;
-#[cfg(feature = "sdk")]
-use crate::in3_request_list::resolve_http_request;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "sdk")]
 use std::ffi::{CStr, CString};
-
+#[cfg(feature = "sdk")]
+use std::os::raw::c_void;
+#[cfg(not(feature = "sdk"))]
+use std::time::Duration;
+use vade::{VadePlugin, VadePluginResultValue};
 
 const DID_PREFIX: &str = "did:";
 const DEFAULT_URL: &str = "https://dev.uniresolver.io/1.0/identifiers/";
@@ -42,13 +41,17 @@ pub struct DidResolverResult {
     pub did_document: serde_json::Value,
 }
 
+#[derive(Clone)]
 pub struct UniversalResolverConfig {
     pub resolver_url: String,
     #[cfg(feature = "sdk")]
     pub request_id: *const c_void,
+    #[cfg(feature = "sdk")]
+    pub resolve_http_request: ResolveHttpRequest,
 }
 
 /// Resolver for DIDs via Universal Resolver
+#[derive(Clone)]
 pub struct VadeUniversalResolver {
     config: UniversalResolverConfig,
 }
@@ -57,8 +60,8 @@ impl VadeUniversalResolver {
     /// Creates new instance of `VadeUniversalResolver`.
     pub fn new(
         resolver_url: Option<String>,
-        #[cfg(feature = "sdk")] 
-        request_id: *const c_void,
+        #[cfg(feature = "sdk")] request_id: *const c_void,
+        #[cfg(feature = "sdk")] resolve_http_request: ResolveHttpRequest,
     ) -> VadeUniversalResolver {
         // Setting default value for resolver url as universal resolver
         // If environment variable is found and it contains some value, it will replace default value
@@ -68,6 +71,8 @@ impl VadeUniversalResolver {
             resolver_url: url,
             #[cfg(feature = "sdk")]
             request_id,
+            #[cfg(feature = "sdk")]
+            resolve_http_request,
         };
 
         match env_logger::try_init() {
@@ -95,15 +100,20 @@ impl VadePlugin for VadeUniversalResolver {
 
         let mut resolver_url = self.config.resolver_url.clone();
         resolver_url.push_str(did_id);
+
         #[cfg(feature = "sdk")]
         let request_pointer = self.config.request_id.clone();
+
+        #[cfg(feature = "sdk")]
+        let resolve_http_request = self.config.resolve_http_request;
+
         cfg_if::cfg_if! {
               if #[cfg(feature = "sdk")]{
                 // if compiled for sdk integration, get_http_response function will be called
                 // TODO: once c library function is received from SDK team add logic here to call the function,
                 // TODO: as of now the function call is assumed to be returning request pending, need more information regarding function parameters
                 // structures
-                let url = CString::new(resolver_url).expect("CString::new failed for resolver_url");
+                let url = CString::new(resolver_url.to_string()).expect("CString::new failed for resolver_url");
                 let url = url.as_ptr();
 
                 let method = CString::new("get").expect("CString::new failed for method");
@@ -118,16 +128,15 @@ impl VadePlugin for VadeUniversalResolver {
                 let res = CString::new("").expect("CString::new failed for res");
                 let res = res.as_ptr();
 
-                let error_code = unsafe { 
-                    resolve_http_request(
-                    request_pointer, 
-                    url, 
-                    method, 
-                    path, 
-                    payload, 
+                let error_code = (resolve_http_request)(
+                    (request_pointer as *mut *const c_void) as *const c_void,
+                    url,
+                    method,
+                    path,
+                    payload,
                     res)
-                };
- 
+                ;
+
                 let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
 
                 let response = format!(r#"{{
@@ -138,11 +147,11 @@ impl VadePlugin for VadeUniversalResolver {
 
                 return Ok(VadePluginResultValue::Success(Some(response.to_string())));
               } else {
-                
+
                 let did_result = Client::builder();
                 #[cfg(not(target_arch = "wasm32"))]
                 let did_result = did_result.timeout(Duration::from_secs(2));
-                let did_result = did_result.build()?.get(&resolver_url).send().await;
+                let did_result = did_result.build()?.get(resolver_url).send().await;
                 match did_result {
                     Ok(result) => {
                         let request_result = match result.text().await {
