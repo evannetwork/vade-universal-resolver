@@ -137,13 +137,17 @@ impl VadePlugin for VadeUniversalResolver {
 
                 let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
 
-                let response = format!(r#"{{
-                    "erorr": "{}", 
-                    "response": "{}"
-                }}"#,
-                error_code, res);
+                if error_code < 0 {
+                    return Err(Box::from(format!("{}", error_code)));
+                }
+                // let response = format!(r#"{{
+                //     "erorr": "{}", 
+                //     "response": "{}"
+                // }}"#,
+                // error_code, res);
 
-                return Ok(VadePluginResultValue::Success(Some(response.to_string())));
+                // println!("resolver output {}",response);
+                return Ok(VadePluginResultValue::Success(Some(res.to_string())));
               } else {
 
                 let did_result = Client::builder();
