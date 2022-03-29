@@ -138,7 +138,7 @@ impl VadePlugin for VadeUniversalResolver {
                 let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
 
                 let response = format!(r#"{{
-                    "erorr": {}, 
+                    "erorr": "{}", 
                     "response": "{}"
                 }}"#,
                 error_code, res);
