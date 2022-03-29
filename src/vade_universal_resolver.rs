@@ -18,7 +18,7 @@ extern crate vade;
 
 #[cfg(feature = "sdk")]
 use crate::in3_request_list::ResolveHttpRequest;
-use async_trait::async_trait;
+
 #[cfg(not(feature = "sdk"))]
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -26,9 +26,13 @@ use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString};
 #[cfg(feature = "sdk")]
 use std::os::raw::c_void;
+#[cfg(feature = "sdk")]
+use std::os::raw::c_char;
 #[cfg(not(feature = "sdk"))]
 use std::time::Duration;
+use async_trait::async_trait;
 use vade::{VadePlugin, VadePluginResultValue};
+
 
 const DID_PREFIX: &str = "did:";
 const DEFAULT_URL: &str = "https://dev.uniresolver.io/1.0/identifiers/";
@@ -123,30 +127,22 @@ impl VadePlugin for VadeUniversalResolver {
                 let payload = CString::new("").expect("CString::new failed for payload");
                 let payload = payload.as_ptr();
 
-                let res = CString::new("").expect("CString::new failed for res");
-                let res = res.as_ptr();
-
+                let mut res: *mut c_char = std::ptr::null_mut();
+                
                 let error_code = (resolve_http_request)(
                     request_pointer,
                     url,
                     method,
                     path,
                     payload,
-                    res)
-                ;
+                    &mut res as *mut *mut c_char);
 
                 let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
 
                 if error_code < 0 {
                     return Err(Box::from(format!("{}", error_code)));
                 }
-                // let response = format!(r#"{{
-                //     "erorr": "{}", 
-                //     "response": "{}"
-                // }}"#,
-                // error_code, res);
 
-                // println!("resolver output {}",response);
                 return Ok(VadePluginResultValue::Success(Some(res.to_string())));
               } else {
 
