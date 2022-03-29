@@ -114,7 +114,7 @@ impl VadePlugin for VadeUniversalResolver {
                 let url = CString::new(resolver_url.to_string()).expect("CString::new failed for resolver_url");
                 let url = url.as_ptr();
 
-                let method = CString::new("get").expect("CString::new failed for method");
+                let method = CString::new("GET").expect("CString::new failed for method");
                 let method = method.as_ptr();
 
                 let path = CString::new("").expect("CString::new failed for path");
