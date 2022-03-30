@@ -137,14 +137,12 @@ impl VadePlugin for VadeUniversalResolver {
                     payload,
                     &mut res as *mut *mut c_char);
 
-                println!("error_code {}",error_code);
-
                 if error_code < 0 {
                     return Err(Box::from(format!("{}", error_code)));
                 }
-                
+
                 let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
-                println!("res {}",res);   
+
                 return Ok(VadePluginResultValue::Success(Some(res.to_string())));
               } else {
 
