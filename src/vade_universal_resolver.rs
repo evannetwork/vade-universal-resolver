@@ -16,9 +16,20 @@
 
 extern crate vade;
 
+#[cfg(feature = "sdk")]
+use crate::in3_request_list::ResolveHttpRequest;
+
 use async_trait::async_trait;
+#[cfg(not(feature = "sdk"))]
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "sdk")]
+use std::ffi::{CStr, CString};
+#[cfg(feature = "sdk")]
+use std::os::raw::c_char;
+#[cfg(feature = "sdk")]
+use std::os::raw::c_void;
+#[cfg(not(feature = "sdk"))]
 use std::time::Duration;
 use vade::{VadePlugin, VadePluginResultValue};
 
@@ -35,6 +46,10 @@ pub struct DidResolverResult {
 
 pub struct UniversalResolverConfig {
     pub resolver_url: String,
+    #[cfg(feature = "sdk")]
+    pub request_id: *const c_void,
+    #[cfg(feature = "sdk")]
+    pub resolve_http_request: ResolveHttpRequest,
 }
 
 /// Resolver for DIDs via Universal Resolver
@@ -44,15 +59,27 @@ pub struct VadeUniversalResolver {
 
 impl VadeUniversalResolver {
     /// Creates new instance of `VadeUniversalResolver`.
-    pub fn new(resolver_url: Option<String>) -> VadeUniversalResolver {
+    pub fn new(
+        resolver_url: Option<String>,
+        #[cfg(feature = "sdk")] request_id: *const c_void,
+        #[cfg(feature = "sdk")] resolve_http_request: ResolveHttpRequest,
+    ) -> VadeUniversalResolver {
         // Setting default value for resolver url as universal resolver
         // If environment variable is found and it contains some value, it will replace default value
         let url = resolver_url.unwrap_or_else(|| DEFAULT_URL.to_string());
 
-        let config = UniversalResolverConfig { resolver_url: url };
+        let config = UniversalResolverConfig {
+            resolver_url: url,
+            #[cfg(feature = "sdk")]
+            request_id,
+            #[cfg(feature = "sdk")]
+            resolve_http_request,
+        };
+
         match env_logger::try_init() {
             Ok(_) | Err(_) => (),
         };
+
         VadeUniversalResolver { config }
     }
 }
@@ -71,29 +98,70 @@ impl VadePlugin for VadeUniversalResolver {
         if !did_id.starts_with(DID_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
+
         let mut resolver_url = self.config.resolver_url.clone();
         resolver_url.push_str(did_id);
 
-        let did_result = Client::builder();
-        #[cfg(not(target_arch = "wasm32"))]
-        let did_result = did_result.timeout(Duration::from_secs(2));
-        let did_result = did_result.build()?.get(&resolver_url).send().await;
+        #[cfg(feature = "sdk")]
+        let request_pointer = self.config.request_id.clone();
 
-        match did_result {
-            Ok(result) => {
-                let request_result = match result.text().await {
-                    Ok(text) => text.to_string(),
-                    Err(_) => return Ok(VadePluginResultValue::Ignored),
-                };
-                let resolver_result: DidResolverResult = match serde_json::from_str(&request_result)
-                {
-                    Ok(text) => text,
-                    Err(_) => return Ok(VadePluginResultValue::Ignored),
-                };
-                let did_document = resolver_result.did_document.to_string();
-                Ok(VadePluginResultValue::Success(Some(did_document)))
-            }
-            Err(_) => Ok(VadePluginResultValue::Ignored),
+        #[cfg(feature = "sdk")]
+        let resolve_http_request = self.config.resolve_http_request;
+
+        cfg_if::cfg_if! {
+              if #[cfg(feature = "sdk")]{
+                // If compiled for sdk integration, get_http_response function will be called
+                let url = CString::new(resolver_url.to_string())?;
+                let url = url.as_ptr();
+
+                let method = CString::new("GET")?;
+                let method = method.as_ptr();
+
+                let path = CString::new("")?;
+                let path = path.as_ptr();
+
+                let payload = CString::new("")?;
+                let payload = payload.as_ptr();
+
+                let mut res: *mut c_char = std::ptr::null_mut();
+
+                let error_code = (resolve_http_request)(
+                    request_pointer,
+                    url,
+                    method,
+                    path,
+                    payload,
+                    &mut res as *mut *mut c_char);
+
+                if error_code < 0 {
+                    return Err(Box::from(format!("{}", error_code)));
+                }
+
+                let res = unsafe { CStr::from_ptr(res).to_string_lossy().into_owned() };
+
+                return Ok(VadePluginResultValue::Success(Some(res.to_string())));
+              } else {
+                let did_result = Client::builder();
+                #[cfg(not(target_arch = "wasm32"))]
+                let did_result = did_result.timeout(Duration::from_secs(2));
+                let did_result = did_result.build()?.get(resolver_url).send().await;
+                match did_result {
+                    Ok(result) => {
+                        let request_result = match result.text().await {
+                            Ok(text) => text.to_string(),
+                            Err(_) => return Ok(VadePluginResultValue::Ignored),
+                        };
+                        let resolver_result: DidResolverResult = match serde_json::from_str(&request_result)
+                        {
+                            Ok(text) => text,
+                            Err(_) => return Ok(VadePluginResultValue::Ignored),
+                        };
+                        let did_document = resolver_result.did_document.to_string();
+                        Ok(VadePluginResultValue::Success(Some(did_document)))
+                    }
+                    Err(_) => Ok(VadePluginResultValue::Ignored),
+                }
+              }
         }
     }
 }
