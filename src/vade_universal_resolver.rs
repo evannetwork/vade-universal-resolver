@@ -19,20 +19,19 @@ extern crate vade;
 #[cfg(feature = "sdk")]
 use crate::in3_request_list::ResolveHttpRequest;
 
+use async_trait::async_trait;
 #[cfg(not(feature = "sdk"))]
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "sdk")]
 use std::ffi::{CStr, CString};
 #[cfg(feature = "sdk")]
-use std::os::raw::c_void;
-#[cfg(feature = "sdk")]
 use std::os::raw::c_char;
+#[cfg(feature = "sdk")]
+use std::os::raw::c_void;
 #[cfg(not(feature = "sdk"))]
 use std::time::Duration;
-use async_trait::async_trait;
 use vade::{VadePlugin, VadePluginResultValue};
-
 
 const DID_PREFIX: &str = "did:";
 const DEFAULT_URL: &str = "https://dev.uniresolver.io/1.0/identifiers/";
@@ -111,24 +110,21 @@ impl VadePlugin for VadeUniversalResolver {
 
         cfg_if::cfg_if! {
               if #[cfg(feature = "sdk")]{
-                // if compiled for sdk integration, get_http_response function will be called
-                // TODO: once c library function is received from SDK team add logic here to call the function,
-                // TODO: as of now the function call is assumed to be returning request pending, need more information regarding function parameters
-                // structures
-                let url = CString::new(resolver_url.to_string()).expect("CString::new failed for resolver_url");
+                // If compiled for sdk integration, get_http_response function will be called
+                let url = CString::new(resolver_url.to_string())?;
                 let url = url.as_ptr();
 
-                let method = CString::new("GET").expect("CString::new failed for method");
+                let method = CString::new("GET")?;
                 let method = method.as_ptr();
 
-                let path = CString::new("").expect("CString::new failed for path");
+                let path = CString::new("")?;
                 let path = path.as_ptr();
 
-                let payload = CString::new("").expect("CString::new failed for payload");
+                let payload = CString::new("")?;
                 let payload = payload.as_ptr();
 
                 let mut res: *mut c_char = std::ptr::null_mut();
-                
+
                 let error_code = (resolve_http_request)(
                     request_pointer,
                     url,
@@ -145,7 +141,6 @@ impl VadePlugin for VadeUniversalResolver {
 
                 return Ok(VadePluginResultValue::Success(Some(res.to_string())));
               } else {
-
                 let did_result = Client::builder();
                 #[cfg(not(target_arch = "wasm32"))]
                 let did_result = did_result.timeout(Duration::from_secs(2));
